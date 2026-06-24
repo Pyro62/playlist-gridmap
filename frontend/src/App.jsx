@@ -8,7 +8,7 @@ function App() {
     setLoading(true)
     try {
       // Because of vercel.json, this automatically maps to your Render backend!
-      const response = await fetch('/api/v1/map')
+      const response = await fetch('/api/')
       const data = await response.json()
       setSongData(data)
     } catch (error) {
