@@ -7,7 +7,7 @@ function App() {
   const check = async () => {
     setLoading(true)
     try {
-      const response = await fetch('/api/')
+      const response = await fetch('/api')
       const data = await response.json()
       setResult({ success: true, data })
     } catch (error) {
