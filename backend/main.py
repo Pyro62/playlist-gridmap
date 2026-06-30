@@ -3,10 +3,20 @@ from fastapi.middleware.cors import CORSMiddleware
 import os
 from dotenv import load_dotenv
 import asyncpg
-
+from database import init_db, get_db, engine, Base
+from contextlib import asynccontextmanager
+import models
+from sqlalchemy import text
 load_dotenv()
+DATABASE_URL = os.getenv("DATABASE_URL")
+ENVIRONMENT = os.getenv("ENVIRONMENT")
 
-app = FastAPI()
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await init_db()
+    yield
+
+app = FastAPI(lifespan=lifespan)
 
 origins = [
     "http://localhost:5173",
@@ -21,15 +31,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-DATABASE_URL = os.getenv("DATABASE_URL")
-ENVIRONMENT = os.getenv("ENVIRONMENT")
+
 # world hello
 @app.get("/")
 async def read_root():
     try:
-        conn = await asyncpg.connect(DATABASE_URL)
-        await conn.close()
-        db_status = 'connected'
+        async with engine.connect() as conn:
+            await conn.execute(text("SELECT 1"))
+        db_status = "connected"
     except Exception as e:
         db_status = 'failed:' + str(e)
 
