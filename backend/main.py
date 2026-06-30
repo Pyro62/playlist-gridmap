@@ -2,14 +2,19 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import os
 from dotenv import load_dotenv
-import asyncpg
 from database import init_db, get_db, engine, Base
 from contextlib import asynccontextmanager
-import models
+from models import User
 from sqlalchemy import text
+import requests
+
 load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
 ENVIRONMENT = os.getenv("ENVIRONMENT")
+
+SPOTIFY_REDIRECT_URI = os.getenv("SPOTIFY_REDIRECT_URI")
+SPOTIFY_CLIENT_ID = os.getenv("SPOTIFY_CLIENT_ID")
+SPOTIFY_CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -47,3 +52,4 @@ async def read_root():
             "environment": ENVIRONMENT,
             "db": db_status
             }
+
