@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from models import User
 from sqlalchemy import text
 import requests
-
+import auth
 load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
 ENVIRONMENT = os.getenv("ENVIRONMENT")
@@ -22,6 +22,8 @@ async def lifespan(app: FastAPI):
     yield
 
 app = FastAPI(lifespan=lifespan)
+
+app.include_router(auth.router)
 
 origins = [
     "http://localhost:5173",

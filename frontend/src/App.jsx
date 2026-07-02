@@ -16,12 +16,19 @@ function App() {
       setLoading(false)
     }
   }
+  const login = async () => {
+    window.location.href = '/api/auth/login'
+  }
 
   return (
-    <div style={{ padding: '40px', fontFamily: 'sans-serif', textAlign: 'center' }}>
-      <h1>Spotify Visualizer</h1>
+    <div style={{ padding: '12px', fontFamily: 'sans-serif', textAlign: 'center' }}>
+      <h1>music gridmap</h1>
       <button onClick={check} disabled={loading}>
         {loading ? 'Checking...' : 'Sanity Check'}
+      </button>
+
+      <button onClick={login} disabled={loading}>
+      {loading ? 'Loading': 'Login'}
       </button>
 
       {result && (

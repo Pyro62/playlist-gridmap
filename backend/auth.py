@@ -7,6 +7,8 @@ import jwt
 import os
 from dotenv import load_dotenv
 from fastapi import APIRouter, Depends
+import random, string
+from fastapi.responses import RedirectResponse
 
 from database import get_db, engine
 from models import User
@@ -15,13 +17,14 @@ router = APIRouter()
 
 load_dotenv()
 
-DATABASE_URL = os.getenv("DATABASE_URL")
+DATABASE_URL = os.getenv("DATABASE_URL")    
 SPOTIFY_REDIRECT_URI = os.getenv("SPOTIFY_REDIRECT_URI")
 SPOTIFY_CLIENT_ID = os.getenv("SPOTIFY_CLIENT_ID")
 SPOTIFY_CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET")
 
 @router.post("/auth/callback")
-async def callback(code: str, db: AsyncSession = Depends(get_db)):
+async def callback(code: str, state: str, db: AsyncSession = Depends(get_db)): # endpoint that user hits after /authorize
+    # todo, verify state from frontend to backend
     url = "https://accounts.spotify.com/api/token"
     data = {
         "grant_type": "authorization_code", # calls spotify api with code from /callback after auth
@@ -69,3 +72,28 @@ async def callback(code: str, db: AsyncSession = Depends(get_db)):
 
     jwt_token = jwt.encode({'user_id' : user.id}, os.getenv("JWT_SECRET"), algorithm="HS256")
     return {'token':jwt_token}
+
+def generateRandomString(length: int):
+    characters = string.ascii_letters + string.digits
+    
+    # Select 'length' number of random characters and join them
+    return ''.join(random.choices(characters, k=length))
+
+@router.get('/auth/login')
+async def login():
+    state = generateRandomString(16)
+    scope = 'user-read-email user-top-read'
+    
+    params = {
+        'client_id': SPOTIFY_CLIENT_ID,
+        'response_type': 'code',
+        'redirect_uri': SPOTIFY_REDIRECT_URI,
+        'state': state,
+        'scope': scope
+    }
+    
+    query_string = "&".join([f"{k}={v}" for k, v in params.items()])
+    url = f"https://accounts.spotify.com/authorize?{query_string}"
+    
+    return RedirectResponse(url)
+# return code to frontend for callback
