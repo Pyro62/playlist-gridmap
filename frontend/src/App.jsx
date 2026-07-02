@@ -3,6 +3,7 @@ import { useState } from 'react'
 function App() {
   const [result, setResult] = useState(null)
   const [loading, setLoading] = useState(false)
+  const [token, setToken] = useState(localStorage.getItem('token'))
 
   const check = async () => {
     setLoading(true)
@@ -16,20 +17,30 @@ function App() {
       setLoading(false)
     }
   }
-  const login = async () => {
-    window.location.href = '/api/auth/login'
+
+  const logout = () => {
+    localStorage.removeItem('token')
+    setToken(null)
   }
 
   return (
     <div style={{ padding: '12px', fontFamily: 'sans-serif', textAlign: 'center' }}>
       <h1>music gridmap</h1>
+
       <button onClick={check} disabled={loading}>
         {loading ? 'Checking...' : 'Sanity Check'}
       </button>
 
-      <button onClick={login} disabled={loading}>
-      {loading ? 'Loading': 'Login'}
-      </button>
+      {token ? (
+        <>
+          <p style={{ color: 'green' }}>Logged in</p>
+          <button onClick={logout}>Logout</button>
+        </>
+      ) : (
+        <button onClick={() => window.location.href = '/api/auth/login'}>
+          Login with Spotify
+        </button>
+      )}
 
       {result && (
         <p style={{ marginTop: '20px', color: result.success ? 'green' : 'red' }}>
