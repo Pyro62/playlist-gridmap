@@ -22,7 +22,7 @@ SPOTIFY_REDIRECT_URI = os.getenv("SPOTIFY_REDIRECT_URI")
 SPOTIFY_CLIENT_ID = os.getenv("SPOTIFY_CLIENT_ID")
 SPOTIFY_CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET")
 
-@router.post("/auth/callback")
+@router.get("/auth/callback")
 async def callback(code: str, state: str, db: AsyncSession = Depends(get_db)): # endpoint that user hits after /authorize
     # todo, verify state from frontend to backend
     url = "https://accounts.spotify.com/api/token"
