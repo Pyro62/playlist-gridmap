@@ -10,4 +10,4 @@ class User(Base):
     email = Column(String)
     access_token = Column(String, nullable=False)
     refresh_token = Column(String, nullable=False)
-    token_expires_at = Column(DateTime, nullable=False)
+    token_expires_at = Column(DateTime(timezone=True), nullable=False)
