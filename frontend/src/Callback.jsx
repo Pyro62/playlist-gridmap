@@ -5,14 +5,31 @@ function Callback() {
   const navigate = useNavigate()
 
   useEffect(() => {
-    const code = new URLSearchParams(window.location.search).get('code')
-    
+    const params = new URLSearchParams(window.location.search)
+    const error = params.get('error')
+    const code = params.get('code')
+
+    if (error) {
+      navigate('/')
+      return
+    }
+
+    if (!code) {
+      navigate('/')
+      return
+    }
+
     fetch(`/api/auth/callback?code=${code}`)
       .then(res => res.json())
       .then(data => {
-        localStorage.setItem('token', data.token)
-        navigate('/')
+        if (data.token) {
+          localStorage.setItem('token', data.token)
+          navigate('/')
+        } else {
+          navigate('/?error=login_failed')
+        }
       })
+      .catch(() => navigate('/'))
   }, [])
 
   return <p>Logging in...</p>
