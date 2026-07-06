@@ -52,23 +52,28 @@ async def catalog_user_tracks(access_token: str):
 def catalog_tracks(data):
     arr = []
     for item in data["items"]:
-            if item['track']==None:
-                continue
-
-            track = item["track"]
-            isrc = track["external_ids"].get("isrc")
-            if not isrc:
-                 continue
-            arr.append({
-                "isrc": isrc,
-                "name": track["name"],
-                "artist": track["artists"][0]["name"],
-                "album": track["album"]["name"],
-                "duration_ms": track["duration_ms"],
-                "preview_url": track.get("preview_url"),
-                "image_url": track["album"]["images"][0]["url"] if track["album"]["images"] else None
-            })
-    
+        if item is None:
+            continue
+        
+        track = item.get("track") or item.get("item")
+        
+        if track is None:
+            continue
             
+        if track.get("type") != "track":  # skip episodes/podcasts
+            continue
+
+        isrc = track["external_ids"].get("isrc")
+        if not isrc:
+            continue
+            
+        arr.append({
+            "isrc": isrc,
+            "name": track["name"],
+            "artist": track["artists"][0]["name"],
+            "album": track["album"]["name"],
+            "duration_ms": track["duration_ms"],
+            "preview_url": track.get("preview_url"),
+            "image_url": track["album"]["images"][0]["url"] if track["album"]["images"] else None
+        })
     return arr
-     
