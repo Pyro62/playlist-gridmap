@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, UTC
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import Depends
+from fastapi import Depends, BackgroundTasks
 import requests
 import jwt
 import os
@@ -9,10 +9,9 @@ from dotenv import load_dotenv
 from fastapi import APIRouter, Depends
 import random, string
 from fastapi.responses import RedirectResponse
-
+from track_handler import catalog_user_tracks
 from database import get_db, engine
 from models import User
-
 router = APIRouter()
 
 load_dotenv()
@@ -69,6 +68,8 @@ async def callback(code: str, db: AsyncSession = Depends(get_db)): # endpoint th
         db.add(user)
     await db.commit() # commits, executes
     await db.refresh(user) # refreshes so it generates id from primary key and stuff
+
+    BackgroundTasks.add_task(catalog_user_tracks(access_token))
 
     jwt_token = jwt.encode({'user_id' : user.id}, os.getenv("JWT_SECRET"), algorithm="HS256")
     return {'token':jwt_token}
