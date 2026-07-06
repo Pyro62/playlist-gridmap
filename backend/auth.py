@@ -22,7 +22,7 @@ SPOTIFY_CLIENT_ID = os.getenv("SPOTIFY_CLIENT_ID")
 SPOTIFY_CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET")
 
 @router.get("/auth/callback")
-async def callback(code: str, db: AsyncSession = Depends(get_db)): # endpoint that user hits after /authorize
+async def callback(code: str, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)): # endpoint that user hits after /authorize
     # todo, verify state from frontend to backend
     url = "https://accounts.spotify.com/api/token"
     data = {
@@ -69,7 +69,7 @@ async def callback(code: str, db: AsyncSession = Depends(get_db)): # endpoint th
     await db.commit() # commits, executes
     await db.refresh(user) # refreshes so it generates id from primary key and stuff
 
-    BackgroundTasks.add_task(catalog_user_tracks(access_token))
+    background_tasks.add_task(catalog_user_tracks(access_token))
 
     jwt_token = jwt.encode({'user_id' : user.id}, os.getenv("JWT_SECRET"), algorithm="HS256")
     return {'token':jwt_token}
