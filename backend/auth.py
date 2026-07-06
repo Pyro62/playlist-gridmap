@@ -83,7 +83,7 @@ def generateRandomString(length: int):
 @router.get('/auth/login')
 async def login():
     state = generateRandomString(16)
-    scope = 'user-read-email user-top-read'
+    scope = 'user-read-email user-top-read playlist-read-private playlist-read-collaborative'
     
     params = {
         'client_id': SPOTIFY_CLIENT_ID,
