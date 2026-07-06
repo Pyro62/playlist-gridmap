@@ -14,6 +14,11 @@ async def catalog_user_tracks(access_token: str):
             params={"limit": 50}
         )
         playlists = response.json()
+        print(f"Playlists response: {playlists}")  # add this
+
+        if 'items' not in playlists:
+            print(f"Failed to get playlists: {playlists}")
+            return
 
         for playlist in playlists['items']:
             response = requests.get(
@@ -23,6 +28,9 @@ async def catalog_user_tracks(access_token: str):
             )
 
             data = response.json()
+            if 'items' not in data:
+                print(f"Skipping playlist, unexpected response: {data}")
+                continue
             tracks = catalog_tracks(data)
             
 
