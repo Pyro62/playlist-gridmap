@@ -21,13 +21,18 @@ async def catalog_user_tracks(access_token: str):
             return
 
         for playlist in playlists['items']:
+            print(f"Fetching tracks for playlist: {playlist['name']}")
+            print(f"Access token (first 20): {access_token[:20]}")
             response = requests.get(
-            f"https://api.spotify.com/v1/playlists/{playlist['id']}/tracks",
+            f"https://api.spotify.com/v1/playlists/{playlist['id']}/items",
             headers={"Authorization": f"Bearer {access_token}"},
             params={"limit": 100}
             )
-
-            data = response.json()
+            print(f"Response status: {response.status_code}")
+            data = response.json()  # call once, store it
+            print(f"Response status: {response.status_code}")
+            print(f"Response body: {data}")  # use the stored variable
+            
             if 'items' not in data:
                 print(f"Skipping playlist, unexpected response: {data}")
                 continue
