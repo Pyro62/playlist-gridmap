@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, UTC
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import Depends, BackgroundTasks
+from fastapi import Depends
 import requests
 import jwt
 import os
@@ -13,7 +13,7 @@ from track_handler import catalog_user_tracks
 from database import get_db, engine
 from models import User
 router = APIRouter()
-
+import asyncio
 load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL")    
@@ -22,7 +22,7 @@ SPOTIFY_CLIENT_ID = os.getenv("SPOTIFY_CLIENT_ID")
 SPOTIFY_CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET")
 
 @router.get("/auth/callback")
-async def callback(code: str, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)): # endpoint that user hits after /authorize
+async def callback(code: str, db: AsyncSession = Depends(get_db)): # endpoint that user hits after /authorize
     # todo, verify state from frontend to backend
     url = "https://accounts.spotify.com/api/token"
     data = {
@@ -69,7 +69,7 @@ async def callback(code: str, background_tasks: BackgroundTasks, db: AsyncSessio
     await db.commit() # commits, executes
     await db.refresh(user) # refreshes so it generates id from primary key and stuff
 
-    background_tasks.add_task(catalog_user_tracks(access_token))
+    asyncio.create_task(catalog_user_tracks(access_token))
 
     jwt_token = jwt.encode({'user_id' : user.id}, os.getenv("JWT_SECRET"), algorithm="HS256")
     return {'token':jwt_token}
