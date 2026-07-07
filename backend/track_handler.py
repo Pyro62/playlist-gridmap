@@ -94,7 +94,7 @@ async def get_saved_tracks(access_token, client: httpx.AsyncClient):
     arr.extend(get_tracks(tracks))
 
     while tracks.get('next'):
-        response = client.get(tracks["next"], headers={"Authorization": f"Bearer {access_token}"})
+        response = await client.get(tracks["next"], headers={"Authorization": f"Bearer {access_token}"})
         tracks = response.json()
         arr.extend(get_tracks(tracks))
     return arr
