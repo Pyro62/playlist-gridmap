@@ -27,7 +27,8 @@ app.include_router(auth.router)
 
 origins = [
     "http://localhost:5173",
-    "https://spotify-visualizer-tau.vercel.app"
+    "https://spotify-visualizer-tau.vercel.app",
+    "https://playlist-gridmap.vercel.app/"
 ]
 
 app.add_middleware(

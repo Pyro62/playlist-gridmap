@@ -6,6 +6,8 @@ from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 
 #todo handle error in case func fails.
+# also add liked songs to list
+# and remove column preview url, its depreciated
 async def catalog_user_tracks(access_token: str):
     async with SessionLocal() as db:
         response = requests.get(
@@ -14,24 +16,18 @@ async def catalog_user_tracks(access_token: str):
             params={"limit": 50}
         )
         playlists = response.json()
-        print(f"Playlists response: {playlists}")  # add this
 
         if 'items' not in playlists:
             print(f"Failed to get playlists: {playlists}")
             return
 
         for playlist in playlists['items']:
-            print(f"Fetching tracks for playlist: {playlist['name']}")
-            print(f"Access token (first 20): {access_token[:20]}")
             response = requests.get(
             f"https://api.spotify.com/v1/playlists/{playlist['id']}/items",
             headers={"Authorization": f"Bearer {access_token}"},
             params={"limit": 100}
             )
-            print(f"Response status: {response.status_code}")
             data = response.json()  # call once, store it
-            print(f"Response status: {response.status_code}")
-            print(f"Response body: {data}")  # use the stored variable
             
             if 'items' not in data:
                 print(f"Skipping playlist, unexpected response: {data}")
