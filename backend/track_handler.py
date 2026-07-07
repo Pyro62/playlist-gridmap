@@ -25,7 +25,7 @@ async def catalog_user_tracks(access_token: str):
                     return
 
                 tracks =[]
-                saved_tracks = await get_saved_tracks(access_token)
+                saved_tracks = await get_saved_tracks(access_token, client)
                 tracks.extend(saved_tracks)
                 for playlist in playlists['items']:
                     response = await client.get(
