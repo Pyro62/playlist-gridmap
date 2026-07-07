@@ -1,51 +1,61 @@
 import requests
 from sqlalchemy.ext.asyncio import AsyncSession
+import asyncio
+import httpx
 from database import SessionLocal
 from models import Track
-from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 
 #todo handle error in case func fails.
-# also add liked songs to list
 # and remove column preview url, its depreciated
+# do httpx so no blopcking the jwt loop
 async def catalog_user_tracks(access_token: str):
     async with SessionLocal() as db:
-        response = requests.get(
-            "https://api.spotify.com/v1/me/playlists",
-            headers={"Authorization": f"Bearer {access_token}"},
-            params={"limit": 50}
-        )
-        playlists = response.json()
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.get(
+                "https://api.spotify.com/v1/me/playlists",
+                headers={"Authorization": f"Bearer {access_token}"},
+                params={"limit": 50}
+                )
+                playlists = response.json()
 
-        if 'items' not in playlists:
-            print(f"Failed to get playlists: {playlists}")
-            return
+                if 'items' not in playlists:
+                    print(f"Failed to get playlists: {playlists}")
+                    return
 
-        for playlist in playlists['items']:
-            response = requests.get(
-            f"https://api.spotify.com/v1/playlists/{playlist['id']}/items",
-            headers={"Authorization": f"Bearer {access_token}"},
-            params={"limit": 100}
-            )
-            data = response.json()  # call once, store it
-            
-            if 'items' not in data:
-                print(f"Skipping playlist, unexpected response: {data}")
-                continue
-            tracks = catalog_tracks(data)
-            
+                tracks =[]
+                saved_tracks = await get_saved_tracks(access_token)
+                tracks.extend(saved_tracks)
+                for playlist in playlists['items']:
+                    response = await client.get(
+                    f"https://api.spotify.com/v1/playlists/{playlist['id']}/items",
+                    headers={"Authorization": f"Bearer {access_token}"},
+                    params={"limit": 100}
+                    )
+                    data = response.json()  # call once, store it
+                    
+                    if 'items' not in data:
+                        print(f"Skipping playlist {playlist['name']}, unexpected response: {data}")
+                        continue
+                    tracks.extend(get_tracks(data))
+                    
 
-            while data.get('next'):
-                response = requests.get(data["next"], headers={"Authorization": f"Bearer {access_token}"})
-                data = response.json()
-                tracks.extend(catalog_tracks(data))
-            
-            if tracks:
-                await db.execute(insert(Track).values(tracks).on_conflict_do_nothing(index_elements=["isrc"]))
-                await db.commit()
+                    while data.get('next'):
+                        response = await client.get(data["next"], headers={"Authorization": f"Bearer {access_token}"})
+                        data = response.json()
+                        tracks.extend(get_tracks(data))
+                    
+                if tracks:
+                        await db.execute(insert(Track).values(tracks).on_conflict_do_nothing(index_elements=["isrc"]))
+                        await db.commit()
+            except Exception as e:
+                print(f"Error handling track cataloging: {str(e)}")
+                await db.rollback()
+
     return
 
-def catalog_tracks(data):
+def get_tracks(data):
     arr = []
     for item in data["items"]:
         if item is None:
@@ -69,7 +79,22 @@ def catalog_tracks(data):
             "artist": track["artists"][0]["name"],
             "album": track["album"]["name"],
             "duration_ms": track["duration_ms"],
-            "preview_url": track.get("preview_url"),
             "image_url": track["album"]["images"][0]["url"] if track["album"]["images"] else None
         })
+    return arr
+
+async def get_saved_tracks(client: httpx.AsyncClient, access_token):
+    arr=[]
+    response = await client.get(
+        "https://api.spotify.com/v1/me/tracks",
+            headers={"Authorization": f"Bearer {access_token}"},
+            params={"limit": 50}
+        )
+    tracks = response.json()
+    arr.extend(get_tracks(tracks))
+
+    while tracks.get('next'):
+        response = client.get(tracks["next"], headers={"Authorization": f"Bearer {access_token}"})
+        tracks = response.json()
+        arr.extend(get_tracks(tracks))
     return arr

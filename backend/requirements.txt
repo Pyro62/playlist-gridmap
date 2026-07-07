@@ -6,3 +6,4 @@ Requests==2.34.2
 SQLAlchemy==2.0.51
 asyncpg==0.31.0
 uvicorn==0.46.0
+httpx==0.28.1
