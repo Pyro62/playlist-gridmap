@@ -83,7 +83,7 @@ def get_tracks(data):
         })
     return arr
 
-async def get_saved_tracks(client: httpx.AsyncClient, access_token):
+async def get_saved_tracks(access_token, client: httpx.AsyncClient):
     arr=[]
     response = await client.get(
         "https://api.spotify.com/v1/me/tracks",
