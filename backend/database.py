@@ -13,7 +13,9 @@ Base = declarative_base()
 
 async def init_db(): # initialize
     async with engine.begin() as conn: #begin() commits on exit if no error vs connect() needs manual execute
+        await conn.exec_driver_sql("CREATE EXTENSION IF NOT EXISTS vector;")
         await conn.run_sync(Base.metadata.create_all)
+        
 
 async def get_db():
     async with SessionLocal() as session: # make session with sessionlocal, give a session and pause, when close then clean up with async with
