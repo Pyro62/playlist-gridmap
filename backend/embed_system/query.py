@@ -7,7 +7,10 @@ from sqlalchemy.dialects.postgresql import insert
 from models import Embedding,Track
 import time
 
-model = laion_clap.CLAP_Module(enable_fusion=False, amodel='HSAT-submel')
+import asyncio
+
+
+model = laion_clap.CLAP_Module(enable_fusion=False, amodel='HTSAT-base')
 model.load_ckpt('music_audioset_epoch_15_esc_90.14.pt')
 
 
@@ -47,52 +50,65 @@ def embed_track(filepath):
 
 
 # Embedding has isrc, embedding, todo is build the Embedding object first., then a big arr of embedding objects before pushing
-def catalog_embeds(vectors):
-    with SessionLocal() as db:
+async def catalog_embeds(vectors):
+    async with SessionLocal() as db:
                 try:
-                    db.execute(insert(Embedding).values(vectors).on_conflict_do_nothing(index_elements=['isrc']))
-                    db.commit()
+                    await db.execute(insert(Embedding).values(vectors).on_conflict_do_nothing(index_elements=['isrc']))
+                    await db.commit()
                 except Exception as e:
                     print(f'failed to push embedded tracks')
-                    db.rollback()
+                    await db.rollback()
 
 BATCH_LIMIT = 20
-def get_unembdedded_tracks():
+async def get_unembdedded_tracks():
     tracks = [] # initialize here in case error
-    with SessionLocal() as db:
+    async with SessionLocal() as db:
+        
         try:
-             result = db.execute(select(Track)
+             result = await db.execute(select(Track)
                             .join(Embedding, Track.isrc == Embedding.isrc, isouter=True)
                             .where(Embedding.isrc.is_(None))
                             .limit(BATCH_LIMIT)
                             )
              tracks = result.scalars().all()
+             print(f'pulled {len(tracks)} unembedded tracks')
         except Exception as e:
              print(f"Error handling unembedded track retrieval: {str(e)}")
-             db.rollback()
+             await db.rollback()
     return tracks
 
 max_sleep = 10
 sleep_time = 2
-while True:
-    vectors = [] # need to build vector object
-    unembeddeds = get_unembdedded_tracks()
-    if unembeddeds:
-        for track in unembeddeds: # i needa download the track and pass it to embeds
-            filepath = download_audio(track.name,track.artist,track.isrc)
-            if filepath:
-                vector = embed_track(filepath)
-                if vector is not None:
-                    vectors.append({
-                    'isrc': track.isrc,
-                    'embedding': vector
-                    
-                    })
-        if vectors:
-            catalog_embeds(vectors)
-        sleep_time = 2
-    else: 
-        time.sleep(sleep_time)
-        sleep_time = min(sleep_time * 2, max_sleep) # if theres no work, sleep longer every check
+async def main():
+    global sleep_time
+    global max_sleep
+    while True:
+        vectors = [] # need to build vector object
+        unembeddeds = await get_unembdedded_tracks()
+        if unembeddeds:
+            print('pulled unembeddeds, processing')
+            for track in unembeddeds: # i needa download the track and pass it to embeds
+                print(f'downloading {track.name} ')
+                filepath = download_audio(track.name,track.artist,track.isrc)
+                
+                if filepath:
+                    vector = embed_track(filepath)
+                    if vector is not None:
+                        vectors.append({
+                        'isrc': track.isrc,
+                        'embedding': vector
+                        
+                        })
+            if vectors:
+                await catalog_embeds(vectors)
+                print(f'Embedded and pushed {len(vectors)} tracks')
+                await asyncio.sleep(2)
+            sleep_time = 2
+        else:
+            print('pulled no unembeddeds, sleeping.') 
+            await asyncio.sleep(sleep_time)
+            sleep_time = min(sleep_time * 2, max_sleep) # if theres no work, sleep longer every check
 
-    
+
+if __name__ == "__main__":
+    asyncio.run(main()) 

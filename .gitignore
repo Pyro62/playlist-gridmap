@@ -6,6 +6,9 @@ __pycache__/
 # C extensions
 *.so
 
+# CLAP Model Checkpoint
+music_audioset_epoch_15_esc_90.14.pt
+
 # Distribution / packaging
 .Python
 build/
