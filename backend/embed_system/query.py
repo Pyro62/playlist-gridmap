@@ -4,16 +4,28 @@ import yt_dlp
 import laion_clap
 import os
 from sqlalchemy.dialects.postgresql import insert
-from models import Embedding,Track
+from models import Embedding,Track,DeadLetter
 import time
-
+from collections import Counter
 import asyncio
 
+os.makedirs('tmp', exist_ok=True)
 
 model = laion_clap.CLAP_Module(enable_fusion=False, amodel='HTSAT-base')
 model.load_ckpt('music_audioset_epoch_15_esc_90.14.pt')
 
+DEAD_LETTER_THRESHOLD = 6
+dead_letters_counter = Counter()
 
+async def catalog_dead_letter(deadLetter):
+    async with SessionLocal() as db:
+        try:
+            db.add(deadLetter)
+            await db.commit()
+        except Exception as e:
+            print(f'failed to catalog deadletter')
+            await db.rollback()
+        
 def download_audio(track_name: str, artist_name: str, isrc: str):
     ydl_opts = {
         'format': 'bestaudio/best',          # grab best audio quality
@@ -22,7 +34,8 @@ def download_audio(track_name: str, artist_name: str, isrc: str):
             'key': 'FFmpegExtractAudio',     # extract audio only
             'preferredcodec': 'wav',         # convert to wav
         }],
-        'quiet': True                        # suppress output
+        'quiet': True,                        # suppress output
+        'socket_timeout': 30
     }
 
     try:
@@ -65,11 +78,14 @@ async def get_unembdedded_tracks():
     async with SessionLocal() as db:
         
         try:
-             result = await db.execute(select(Track)
-                            .join(Embedding, Track.isrc == Embedding.isrc, isouter=True)
-                            .where(Embedding.isrc.is_(None))
-                            .limit(BATCH_LIMIT)
-                            )
+             result = await db.execute(
+                    select(Track)
+                    .join(Embedding, Track.isrc == Embedding.isrc, isouter=True)
+                    .join(DeadLetter, Track.isrc == DeadLetter.isrc, isouter=True) # Join deadletters
+                    .where(Embedding.isrc.is_(None))
+                    .where(DeadLetter.isrc.is_(None))                             # Filter them out!
+                    .limit(BATCH_LIMIT)
+                )
              tracks = result.scalars().all()
              print(f'pulled {len(tracks)} unembedded tracks')
         except Exception as e:
@@ -89,16 +105,33 @@ async def main():
             print('pulled unembeddeds, processing')
             for track in unembeddeds: # i needa download the track and pass it to embeds
                 print(f'downloading {track.name} ')
-                filepath = download_audio(track.name,track.artist,track.isrc)
+                filepath = await asyncio.to_thread(download_audio, track.name, track.artist, track.isrc)
                 
                 if filepath:
-                    vector = embed_track(filepath)
+                    vector = await asyncio.to_thread(embed_track, filepath)
                     if vector is not None:
                         vectors.append({
                         'isrc': track.isrc,
                         'embedding': vector
                         
                         })
+                        dead_letters_counter.pop(track.isrc, None)
+                    else:
+                        dead_letters_counter[track.isrc] +=1
+                        if dead_letters_counter[track.isrc] >= DEAD_LETTER_THRESHOLD:
+                            dead_letter = DeadLetter(isrc=track.isrc,name=track.name,artist=track.artist)
+                            print(f"Removing Dead Letter From Queue: {track.isrc} , {track.name} , {track.artist}")
+                            await catalog_dead_letter(dead_letter)
+                            del dead_letters_counter[track.isrc]
+
+                else:
+                    dead_letters_counter[track.isrc] +=1
+                    if dead_letters_counter[track.isrc] >= DEAD_LETTER_THRESHOLD:
+                        dead_letter = DeadLetter(isrc=track.isrc,name=track.name,artist=track.artist)
+                        print(f"Removing Dead Letter From Queue: {track.isrc} , {track.name} , {track.artist}")
+                        await catalog_dead_letter(dead_letter)
+                        del dead_letters_counter[track.isrc]
+
             if vectors:
                 await catalog_embeds(vectors)
                 print(f'Embedded and pushed {len(vectors)} tracks')

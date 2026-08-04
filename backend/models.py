@@ -32,3 +32,12 @@ class Embedding(Base):
     isrc = Column(String, ForeignKey("tracks.isrc"), primary_key=True)
     embedding = Column(Vector(512))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class DeadLetter(Base):
+    __tablename__ = "deadletters"
+
+    id = Column(Integer, primary_key=True) 
+    isrc = Column(String, unique=True)# isrc code, unique for each track
+    name = Column(String, nullable=False)
+    artist = Column(String, nullable=False)
+    failed_at = Column(DateTime(timezone=True), server_default=func.now())
