@@ -1,5 +1,5 @@
 from database import Base
-from sqlalchemy import Integer, String, Column, DateTime, ForeignKey
+from sqlalchemy import Integer, String, Column, DateTime, ForeignKey, Float
 from pgvector.sqlalchemy import Vector
 from sqlalchemy.sql import func
 
@@ -41,3 +41,18 @@ class DeadLetter(Base):
     name = Column(String, nullable=False)
     artist = Column(String, nullable=False)
     failed_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class TrackCoordinate(Base):
+    __tablename__ = "trackcoordinates"
+
+    id = Column(Integer, primary_key=True)
+    isrc = Column(String, unique=True)# isrc code, unique for each track
+
+    x_coordinate = Column(Float, nullable=False)
+    y_coordinate = Column(Float, nullable=False)
+
+    name = Column(String, nullable=False)
+    artist = Column(String, nullable=False)
+    image_url = Column(String)
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

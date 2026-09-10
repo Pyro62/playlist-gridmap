@@ -1,7 +1,6 @@
 from datetime import datetime, timedelta, UTC
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import Depends
 import requests
 import jwt
 import os

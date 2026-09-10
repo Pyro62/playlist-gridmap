@@ -8,6 +8,7 @@ from models import User
 from sqlalchemy import text
 import requests
 import auth
+import playlists
 load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
 ENVIRONMENT = os.getenv("ENVIRONMENT")
@@ -24,6 +25,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 app.include_router(auth.router)
+app.include_router(playlists.router)
 
 origins = [
     "http://localhost:5173",

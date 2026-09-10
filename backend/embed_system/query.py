@@ -8,6 +8,7 @@ from models import Embedding,Track,DeadLetter
 import time
 from collections import Counter
 import asyncio
+import requests
 
 os.makedirs('tmp', exist_ok=True)
 
