@@ -50,7 +50,7 @@ async def read_root():
             await conn.execute(text("SELECT 1"))
         db_status = "connected"
     except Exception as e:
-        db_status = 'failed:' + str(e)
+        db_status = 'failed:'
 
     return {
             "status": "ok, backend connected to front",

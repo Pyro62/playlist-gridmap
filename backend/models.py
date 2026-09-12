@@ -33,6 +33,13 @@ class Embedding(Base):
     embedding = Column(Vector(512))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
+class PreviewEmbedding(Base):
+    __tablename__ = "previewembeddings"
+    
+    isrc = Column(String, ForeignKey("tracks.isrc"), primary_key=True)
+    embedding = Column(Vector(512))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
 class DeadLetter(Base):
     __tablename__ = "deadletters"
 
