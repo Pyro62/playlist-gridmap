@@ -5,10 +5,13 @@ import laion_clap
 import os
 from sqlalchemy.dialects.postgresql import insert
 from models import Embedding,Track,DeadLetter
-import time
 from collections import Counter
 import asyncio
-import requests
+class QuietLogger:
+    def debug(self, msg): pass
+    def warning(self, msg): pass
+    def error(self, msg): print(msg)
+
 
 os.makedirs('tmp', exist_ok=True)
 
@@ -28,26 +31,35 @@ async def catalog_dead_letter(deadLetter):
             await db.rollback()
         
 def download_audio(track_name: str, artist_name: str, isrc: str):
+    safe_id = isrc.replace(":", "_")  # filesystem-safe version, just for the path
     ydl_opts = {
-        'format': 'bestaudio/best',          # grab best audio quality
-        'outtmpl': f'tmp/{isrc}.%(ext)s',   # where to save it
+        'format': 'bestaudio/best',
+        'outtmpl': f'tmp/{safe_id}.%(ext)s',
         'postprocessors': [{
-            'key': 'FFmpegExtractAudio',     # extract audio only
-            'preferredcodec': 'wav',         # convert to wav
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'wav',
         }],
-        'quiet': True,                        # suppress output
-        'socket_timeout': 30
+        'quiet': True,
+        'socket_timeout': 30,
+        # Fix 403 Forbidden errors
+        'extractor_args': {
+            'youtube': {
+                'player_client': ['android', 'web']
+            }
+        },
+        'source_address': '0.0.0.0', # Force IPv4
+        'logger': QuietLogger()
     }
 
     try:
         # 1. download audio
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([f"ytsearch1:{track_name} {artist_name} audio"])
-            expected_path = f"tmp/{isrc}.wav"
+            expected_path = f"tmp/{safe_id}.wav"
             if os.path.exists(expected_path):
                 return expected_path 
     except Exception as e:
-        print(f"Failed Download of {track_name} , {artist_name}, isrc: {isrc} audio")
+        print(f"Failed Download of {track_name} , {artist_name}, isrc: {isrc} audio {e}")
         return None
 
 def embed_track(filepath):
