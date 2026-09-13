@@ -6,12 +6,13 @@ readme = "README.md"
 authors = [
     { name = "PieRoe", email = "ethanluu0508@gmail.com" }
 ]
-requires-python = ">=3.13"
+requires-python = ">=3.12,<3.13"
 dependencies = [
     "asyncpg==0.31.0",
     "fastapi==0.139.0",
     "httpx==0.28.1",
     "laion-clap==1.1.7",
+    "numpy>=1.26,<2.0",
     "pgvector==0.4.2",
     "pyjwt==2.13.0",
     "python-dotenv==1.2.2",
