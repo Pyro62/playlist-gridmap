@@ -23,8 +23,8 @@ def validate_playlist_url(playlist_url: str): # todo make validator and pass it 
 @router.get("/playlist")
 async def get_playlist_tracks(playlist_id: str):
     async with AsyncSpotifyClient() as client:
-        try:
-            playlist = await client.get_playlist(playlist_id)
+        try:    
+            playlist = await client.get_playlist(playlist_id, max_tracks=None)
             data = playlist.to_dict()
         except Exception as e:
             logger.exception(f"Something went wrong with playlist {playlist_id}")
