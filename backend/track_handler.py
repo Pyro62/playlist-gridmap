@@ -69,7 +69,7 @@ def get_tracks(data):
         if track.get("type") != "track":  # skip episodes/podcasts
             continue
 
-        isrc = track["external_ids"].get("uri")
+        isrc = track.get("uri")
         if not isrc:
             continue
             

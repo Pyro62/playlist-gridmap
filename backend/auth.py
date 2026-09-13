@@ -11,8 +11,11 @@ from fastapi.responses import RedirectResponse
 from track_handler import catalog_user_tracks
 from database import get_db, engine
 from models import User
-router = APIRouter()
 import asyncio
+
+router = APIRouter()
+background_tasks: set[asyncio.Task] = set()
+
 load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL")    
@@ -68,7 +71,9 @@ async def callback(code: str, db: AsyncSession = Depends(get_db)): # endpoint th
     await db.commit() # commits, executes
     await db.refresh(user) # refreshes so it generates id from primary key and stuff
 
-    asyncio.create_task(catalog_user_tracks(access_token))
+    task = asyncio.create_task(catalog_user_tracks(access_token))
+    background_tasks.add(task)
+    task.add_done_callback(background_tasks.discard)
 
     jwt_token = jwt.encode({'user_id' : user.id}, os.getenv("JWT_SECRET"), algorithm="HS256")
     return {'token':jwt_token}
