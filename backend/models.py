@@ -18,7 +18,7 @@ class User(Base):
 class Track(Base):
     __tablename__ = "tracks"
     id = Column(Integer, primary_key=True) 
-    isrc = Column(String, unique=True)# isrc code, unique for each track
+    isrc = Column(String, unique=True, nullable=False)# isrc code, unique for each track
     name = Column(String, nullable=False)
     artist = Column(String, nullable=False)
     album = Column(String)
@@ -26,7 +26,7 @@ class Track(Base):
     image_url = Column(String)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-class Embedding(Base):
+class FullEmbedding(Base):
     __tablename__ = "embeddings"
     
     isrc = Column(String, ForeignKey("tracks.isrc"), primary_key=True)
@@ -40,11 +40,20 @@ class PreviewEmbedding(Base):
     embedding = Column(Vector(512))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-class DeadLetter(Base):
+class DeadLetterPreview(Base):
+    __tablename__ = "deadletterspreview"
+
+    id = Column(Integer, primary_key=True) 
+    isrc = Column(String, ForeignKey('tracks.isrc'), unique=True)# isrc code, unique for each track
+    name = Column(String, nullable=False)
+    artist = Column(String, nullable=False)
+    failed_at = Column(DateTime(timezone=True), server_default=func.now())
+                       
+class DeadLetterFull(Base):
     __tablename__ = "deadletters"
 
     id = Column(Integer, primary_key=True) 
-    isrc = Column(String, unique=True)# isrc code, unique for each track
+    isrc = Column(String, ForeignKey('tracks.isrc'), unique=True)# isrc code, unique for each track
     name = Column(String, nullable=False)
     artist = Column(String, nullable=False)
     failed_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -53,7 +62,7 @@ class TrackCoordinate(Base):
     __tablename__ = "trackcoordinates"
 
     id = Column(Integer, primary_key=True)
-    isrc = Column(String, unique=True)# isrc code, unique for each track
+    isrc = Column(String, ForeignKey('tracks.isrc'), unique=True)# isrc code, unique for each track
 
     x_coordinate = Column(Float, nullable=False)
     y_coordinate = Column(Float, nullable=False)
