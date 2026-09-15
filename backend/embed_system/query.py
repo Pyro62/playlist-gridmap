@@ -41,7 +41,7 @@ async def download_preview(uri: str):
                 track = await client.get_track(uri)
                 filename = uri[14:]
                 preview_path = await client.download_preview(entity=track, dest='tmp',filename=f"{filename}.mp3")
-
+                print(f"downloading preview for {track.name}")
                 if os.path.exists(preview_path):
                     return preview_path
         except Exception as e:
