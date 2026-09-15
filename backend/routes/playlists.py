@@ -20,7 +20,7 @@ def validate_playlist_url(playlist_url: str): # todo make validator and pass it 
     return
 
 
-@router.get("/playlist")
+@router.post("/playlist/ingest")
 async def get_playlist_tracks(playlist_id: str):
     async with AsyncSpotifyClient() as client:
         try:    

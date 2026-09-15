@@ -7,8 +7,8 @@ from contextlib import asynccontextmanager
 from models import User
 from sqlalchemy import text
 import requests
-import backend.routes.auth as auth
-import backend.routes.playlists as playlists
+import routes.auth as auth
+import routes.playlists as playlists
 load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
 ENVIRONMENT = os.getenv("ENVIRONMENT")
