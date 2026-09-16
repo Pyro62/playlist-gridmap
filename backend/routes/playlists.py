@@ -14,6 +14,7 @@ load_dotenv()
 
 router = APIRouter()
 DATABASE_URL = os.getenv("DATABASE_URL")   
+BATCH_LIMIT = 500
 
 
 def validate_playlist_url(playlist_url: str): # todo make validator and pass it in
@@ -56,7 +57,11 @@ async def get_playlist_tracks(playlist_id: str):
     if trackVector:
         async with SessionLocal() as db:
             try:
-                await db.execute(insert(TrackModel).values(trackVector).on_conflict_do_nothing(index_elements=['isrc']))
+                for i in range(0, len(trackVector), BATCH_LIMIT):
+                    batch = trackVector[i:i + BATCH_LIMIT]
+                    await db.execute(
+                        insert(TrackModel).values(batch).on_conflict_do_nothing(index_elements=['isrc'])
+                    )
                 await db.commit()
             except Exception:
                 logger.exception(f"Failed to push tracks for playlist {playlist_id}")
